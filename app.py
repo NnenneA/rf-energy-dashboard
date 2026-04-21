@@ -54,8 +54,7 @@ st.markdown("""
 # DATA PATHS
 # ============================================================
 
-DATA_DIR = r"C:\Users\HP 440 G6\Documents\STUDY\UEL\MSC DATA SCIENCE\DISSERTATION\RF Energy\Data\STREAMLIT"
-
+DATA_DIR = "."
 # ============================================================
 # DATA LOADING
 # ============================================================
@@ -63,7 +62,7 @@ DATA_DIR = r"C:\Users\HP 440 G6\Documents\STUDY\UEL\MSC DATA SCIENCE\DISSERTATIO
 @st.cache_data
 def load_main_data():
     df = pd.read_csv(
-        f"{DATA_DIR}\\london_4g_combined.csv",
+        f"{DATA_DIR}/london_4g_combined.csv",
         low_memory=False
     )
     # Zero values in signal columns are missing measurements
@@ -100,13 +99,13 @@ def load_main_data():
 
 @st.cache_data
 def load_results():
-    df = pd.read_csv(f"{DATA_DIR}\\r_full_results.csv")
+    df = pd.read_csv(f"{DATA_DIR}/r_full_results.csv")
     return df
 
 @st.cache_data
 def load_scaled():
     df = pd.read_csv(
-        f"{DATA_DIR}\\london_4g_scaled.csv",
+        f"{DATA_DIR}/london_4g_scaled.csv",
         low_memory=False
     )
     return df
