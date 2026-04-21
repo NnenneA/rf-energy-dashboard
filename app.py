@@ -7,6 +7,8 @@ from plotly.subplots import make_subplots
 import folium
 from streamlit_folium import st_folium
 import warnings
+import os
+import gdown
 warnings.filterwarnings('ignore')
 
 # ============================================================
@@ -59,13 +61,19 @@ st.markdown("""
 # DATA LOADING
 # ============================================================
 
+import gdown
+import os
+
 @st.cache_data
 def load_main_data():
-    df = pd.read_csv(
-        "london_4g_combined.csv",
-        low_memory=False
-    )
-    # Zero values in signal columns are missing measurements
+    file_id = "1LVLDCRkv-YMFakdl3l2DQ7WKfwTwmDAE"
+    output = "london_4g_combined.csv"
+    if not os.path.exists(output):
+        gdown.download(
+            f"https://drive.google.com/uc?id={file_id}",
+            output, quiet=False
+        )
+    df = pd.read_csv(output, low_memory=False)
     signal_cols = [
         'rsrp_top1_3uk', 'rsrp_top1_ee',
         'rsrp_top1_o2', 'rsrp_top1_vf'
@@ -73,41 +81,45 @@ def load_main_data():
     for col in signal_cols:
         if col in df.columns:
             df[col] = df[col].replace(0, np.nan)
-
-    # Feature engineering
     df['hour_of_day'] = pd.to_datetime(
         df['hour_ref'], unit='s', utc=True
     ).dt.hour
-
     df['month'] = pd.to_datetime(
         df['month_year'], dayfirst=True
     ).dt.month
-
     df['year'] = pd.to_datetime(
         df['month_year'], dayfirst=True
     ).dt.year
-
-    # Harvestability label
     df['harvestable'] = (
         (df['rsrp_top1_3uk'].notna() & (df['rsrp_top1_3uk'] >= -40)) |
         (df['rsrp_top1_ee'].notna()  & (df['rsrp_top1_ee']  >= -40)) |
         (df['rsrp_top1_o2'].notna()  & (df['rsrp_top1_o2']  >= -40)) |
         (df['rsrp_top1_vf'].notna()  & (df['rsrp_top1_vf']  >= -40))
     ).astype(int)
-
     return df
 
 @st.cache_data
 def load_results():
-    df = pd.read_csv("r_full_results.csv")
+    file_id = "1pTDf5bxEstRGWjE-53u8HuACUZ7UOIv5"
+    output = "r_full_results.csv"
+    if not os.path.exists(output):
+        gdown.download(
+            f"https://drive.google.com/uc?id={file_id}",
+            output, quiet=False
+        )
+    df = pd.read_csv(output)
     return df
 
 @st.cache_data
 def load_scaled():
-    df = pd.read_csv(
-        "london_4g_scaled.csv",
-        low_memory=False
-    )
+    file_id = "1QIL_f3papzxMqDPnvSSHhiekqLtg4NdP"
+    output = "london_4g_scaled.csv"
+    if not os.path.exists(output):
+        gdown.download(
+            f"https://drive.google.com/uc?id={file_id}",
+            output, quiet=False
+        )
+    df = pd.read_csv(output, low_memory=False)
     return df
 
 # ============================================================
