@@ -3,7 +3,6 @@ import pandas as pd
 import numpy as np
 import plotly.express as px
 import plotly.graph_objects as go
-from plotly.subplots import make_subplots
 import folium
 from streamlit_folium import st_folium
 import warnings
@@ -42,6 +41,10 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
+# ============================================================
+# DATA LOADING
+# ============================================================
+
 @st.cache_data
 def load_main_data():
     file_id = "1LVLDCRkv-YMFakdl3l2DQ7WKfwTwmDAE"
@@ -73,12 +76,38 @@ def load_results():
     return pd.read_csv(output)
 
 @st.cache_data
-def load_scaled():
-    file_id = "1QIL_f3papzxMqDPnvSSHhiekqLtg4NdP"
-    output = "london_4g_scaled.csv"
-    if not os.path.exists(output):
-        gdown.download(f"https://drive.google.com/uc?id={file_id}", output, quiet=False)
-    return pd.read_csv(output, low_memory=False)
+def precompute_thresholds(_df):
+    """Pre-calculate harvestability counts for all threshold levels once at startup."""
+    thresholds = [-60, -55, -50, -45, -40, -35, -30, -25, -20]
+    results = {}
+    for t in thresholds:
+        results[t] = int((
+            (_df['rsrp_top1_3uk'].notna() & (_df['rsrp_top1_3uk'] >= t)) |
+            (_df['rsrp_top1_ee'].notna()  & (_df['rsrp_top1_ee']  >= t)) |
+            (_df['rsrp_top1_o2'].notna()  & (_df['rsrp_top1_o2']  >= t)) |
+            (_df['rsrp_top1_vf'].notna()  & (_df['rsrp_top1_vf']  >= t))
+        ).sum())
+    return results
+
+@st.cache_data
+def precompute_map_sample(_df):
+    """Pre-sample map points once at startup with harvestable flag at all thresholds."""
+    thresholds = [-60, -55, -50, -45, -40, -35, -30, -25, -20]
+    df_map = _df.dropna(subset=['latitude', 'longitude']).copy()
+    df_map = df_map.sample(min(5000, len(df_map)), random_state=42)
+    for t in thresholds:
+        col_name = f'harvest_{abs(t)}'
+        df_map[col_name] = (
+            (df_map['rsrp_top1_3uk'].notna() & (df_map['rsrp_top1_3uk'] >= t)) |
+            (df_map['rsrp_top1_ee'].notna()  & (df_map['rsrp_top1_ee']  >= t)) |
+            (df_map['rsrp_top1_o2'].notna()  & (df_map['rsrp_top1_o2']  >= t)) |
+            (df_map['rsrp_top1_vf'].notna()  & (df_map['rsrp_top1_vf']  >= t))
+        ).astype(int)
+    return df_map
+
+# ============================================================
+# SIDEBAR
+# ============================================================
 
 st.sidebar.image(
     "https://cdn.ymaws.com/elia.site-ym.com/resource/resmgr/news_items/university_east_london_logo.png",
@@ -98,10 +127,16 @@ page = st.sidebar.radio(
      " Model Performance", " Deployment Recommendations"]
 )
 
+# ============================================================
+# LOAD DATA
+# ============================================================
+
 with st.spinner("Loading dataset..."):
     try:
         df = load_main_data()
         results = load_results()
+        threshold_counts = precompute_thresholds(df)
+        df_map_precomputed = precompute_map_sample(df)
         data_loaded = True
     except Exception as e:
         st.error(f"Error loading data: {e}")
@@ -187,21 +222,13 @@ if page == " Overview":
 
 elif page == " Geographic Map":
     st.title(" Geographic Distribution of RF Harvestability")
-    st.markdown("Spatial distribution of RSRP signal strength and harvestable locations across London's road network.")
+    st.markdown("Spatial distribution of harvestable locations across London's road network.")
     st.markdown("---")
 
     if data_loaded:
         col1, col2 = st.columns([1, 3])
 
         with col1:
-            st.markdown("### Map Controls")
-            operator = st.selectbox("Select Operator",
-                ["All Operators", "Three UK", "EE", "O2", "Vodafone"])
-            map_type = st.radio("Display",
-                ["Harvestable Locations", "Signal Strength (RSRP)"])
-            sample_size = st.slider("Sample size (rows)", 1000, 20000, 5000, 1000)
-
-            st.markdown("---")
             st.markdown("### Harvestability Threshold")
             threshold_dbm = st.slider(
                 "RSRP Threshold (dBm)",
@@ -209,12 +236,7 @@ elif page == " Geographic Map":
                 help="Move to explore how harvestability changes at different signal thresholds. The study uses -40 dBm."
             )
 
-            harvestable_at_threshold = (
-                (df['rsrp_top1_3uk'].notna() & (df['rsrp_top1_3uk'] >= threshold_dbm)) |
-                (df['rsrp_top1_ee'].notna()  & (df['rsrp_top1_ee']  >= threshold_dbm)) |
-                (df['rsrp_top1_o2'].notna()  & (df['rsrp_top1_o2']  >= threshold_dbm)) |
-                (df['rsrp_top1_vf'].notna()  & (df['rsrp_top1_vf']  >= threshold_dbm))
-            ).sum()
+            harvestable_at_threshold = threshold_counts.get(threshold_dbm, 0)
             harvestable_pct = harvestable_at_threshold / len(df) * 100
 
             if threshold_dbm == -40:
@@ -224,95 +246,61 @@ elif page == " Geographic Map":
             else:
                 st.warning(f"**Strict threshold:** {threshold_dbm} dBm\n\n{harvestable_at_threshold:,} harvestable ({harvestable_pct:.2f}%)")
 
-            st.caption("-40 dBm is the rectenna activation point (Agwunedu, 2022)")
+            st.markdown("---")
+            st.caption("−40 dBm is the rectenna activation point (Agwunedu, 2022). Map shows a 5,000-point sample.")
 
         with col2:
-            df_map = df.dropna(subset=['latitude', 'longitude']).copy()
-            df_map['harvestable_threshold'] = (
-                (df_map['rsrp_top1_3uk'].notna() & (df_map['rsrp_top1_3uk'] >= threshold_dbm)) |
-                (df_map['rsrp_top1_ee'].notna()  & (df_map['rsrp_top1_ee']  >= threshold_dbm)) |
-                (df_map['rsrp_top1_o2'].notna()  & (df_map['rsrp_top1_o2']  >= threshold_dbm)) |
-                (df_map['rsrp_top1_vf'].notna()  & (df_map['rsrp_top1_vf']  >= threshold_dbm))
-            ).astype(int)
-            df_map = df_map.sample(min(sample_size, len(df_map)), random_state=42)
-
-            op_col_map = {"Three UK": "rsrp_top1_3uk", "EE": "rsrp_top1_ee",
-                          "O2": "rsrp_top1_o2", "Vodafone": "rsrp_top1_vf"}
+            col_name = f'harvest_{abs(threshold_dbm)}'
+            harvestable_pts = df_map_precomputed[df_map_precomputed[col_name] == 1]
+            not_harvestable_pts = df_map_precomputed[df_map_precomputed[col_name] == 0].sample(
+                min(2000, len(df_map_precomputed[df_map_precomputed[col_name] == 0])),
+                random_state=42
+            )
 
             m = folium.Map(location=[51.5074, -0.1278], zoom_start=10, tiles='CartoDB positron')
 
-            if map_type == "Harvestable Locations":
-                harvestable_pts = df_map[df_map['harvestable_threshold'] == 1]
-                not_harvestable_pts = df_map[df_map['harvestable_threshold'] == 0].sample(
-                    min(2000, len(df_map[df_map['harvestable_threshold'] == 0])), random_state=42)
+            for _, row in not_harvestable_pts.iterrows():
+                folium.CircleMarker(
+                    location=[row['latitude'], row['longitude']],
+                    radius=2, color='#F44336', fill=True,
+                    fill_opacity=0.4, weight=0
+                ).add_to(m)
 
-                for _, row in not_harvestable_pts.iterrows():
-                    folium.CircleMarker(location=[row['latitude'], row['longitude']],
-                        radius=2, color='#F44336', fill=True, fill_opacity=0.4, weight=0).add_to(m)
+            for _, row in harvestable_pts.iterrows():
+                folium.CircleMarker(
+                    location=[row['latitude'], row['longitude']],
+                    radius=5, color='#4CAF50', fill=True,
+                    fill_opacity=0.8, weight=1,
+                    popup=f"Harvestable at {threshold_dbm} dBm"
+                ).add_to(m)
 
-                for _, row in harvestable_pts.iterrows():
-                    folium.CircleMarker(location=[row['latitude'], row['longitude']],
-                        radius=5, color='#4CAF50', fill=True, fill_opacity=0.8, weight=1,
-                        popup=f"Harvestable at {threshold_dbm} dBm").add_to(m)
-
-                legend_html = f'''
-                <div style="position:fixed;bottom:30px;left:30px;z-index:1000;
-                     background-color:white;padding:10px;border-radius:8px;
-                     box-shadow:0 2px 6px rgba(0,0,0,0.3);font-size:13px;">
-                    <b>Harvestability at {threshold_dbm} dBm</b><br>
-                    <span style="color:#4CAF50;">●</span> Harvestable ({len(harvestable_pts):,} pts)<br>
-                    <span style="color:#F44336;">●</span> Not Harvestable
-                </div>'''
-                m.get_root().html.add_child(folium.Element(legend_html))
-
-            else:
-                rsrp_col = op_col_map.get(operator, 'rsrp_top1_vf')
-                op_label = operator if operator != "All Operators" else "Vodafone"
-                df_rsrp = df_map.dropna(subset=[rsrp_col])
-
-                for _, row in df_rsrp.iterrows():
-                    rsrp_val = row[rsrp_col]
-                    normalized = max(0, min(1, (rsrp_val - (-120)) / (threshold_dbm - (-120))))
-                    r = int(255 * (1 - normalized))
-                    g = int(255 * normalized)
-                    color = f'#{r:02x}{g:02x}00'
-                    folium.CircleMarker(location=[row['latitude'], row['longitude']],
-                        radius=2, color=color, fill=True, fill_opacity=0.6, weight=0,
-                        popup=f"{op_label} RSRP: {rsrp_val:.1f} dBm").add_to(m)
-
-                legend_html = f'''
-                <div style="position:fixed;bottom:30px;left:30px;z-index:1000;
-                     background-color:white;padding:10px;border-radius:8px;
-                     box-shadow:0 2px 6px rgba(0,0,0,0.3);font-size:13px;">
-                    <b>RSRP Signal Strength</b><br>
-                    <span style="color:#00ff00;">●</span> Strong (near {threshold_dbm} dBm)<br>
-                    <span style="color:#ff8800;">●</span> Moderate<br>
-                    <span style="color:#ff0000;">●</span> Weak (near -120 dBm)
-                </div>'''
-                m.get_root().html.add_child(folium.Element(legend_html))
+            legend_html = f'''
+            <div style="position:fixed;bottom:30px;left:30px;z-index:1000;
+                 background-color:white;padding:10px;border-radius:8px;
+                 box-shadow:0 2px 6px rgba(0,0,0,0.3);font-size:13px;">
+                <b>Harvestability at {threshold_dbm} dBm</b><br>
+                <span style="color:#4CAF50;">●</span> Harvestable ({len(harvestable_pts):,} pts in sample)<br>
+                <span style="color:#F44336;">●</span> Not Harvestable
+            </div>'''
+            m.get_root().html.add_child(folium.Element(legend_html))
 
             st_folium(m, width=800, height=550)
 
         st.markdown("---")
         st.markdown("### Threshold Sensitivity Analysis")
-        st.markdown("How harvestability changes across different RSRP thresholds:")
+        st.markdown("How harvestability changes across different RSRP thresholds across the full dataset:")
 
-        threshold_data = []
+        threshold_table = []
         for t in [-60, -55, -50, -45, -40, -35, -30]:
-            count = (
-                (df['rsrp_top1_3uk'].notna() & (df['rsrp_top1_3uk'] >= t)) |
-                (df['rsrp_top1_ee'].notna()  & (df['rsrp_top1_ee']  >= t)) |
-                (df['rsrp_top1_o2'].notna()  & (df['rsrp_top1_o2']  >= t)) |
-                (df['rsrp_top1_vf'].notna()  & (df['rsrp_top1_vf']  >= t))
-            ).sum()
-            threshold_data.append({
+            count = threshold_counts.get(t, 0)
+            threshold_table.append({
                 'Threshold (dBm)': t,
                 'Harvestable Count': f"{count:,}",
                 'Harvestable (%)': f"{count/len(df)*100:.2f}%",
                 'Note': '← Study threshold' if t == -40 else ''
             })
 
-        st.dataframe(pd.DataFrame(threshold_data), use_container_width=True, hide_index=True)
+        st.dataframe(pd.DataFrame(threshold_table), use_container_width=True, hide_index=True)
 
         st.markdown("---")
         col1, col2, col3 = st.columns(3)
@@ -368,7 +356,8 @@ elif page == " Temporal Analysis":
             hour_counts = df['hour_of_day'].value_counts().sort_index().reset_index()
             hour_counts.columns = ['Hour', 'Count']
             fig_counts = px.bar(hour_counts, x='Hour', y='Count',
-                title='Measurement Count by Hour of Day', color_discrete_sequence=['#2196F3'])
+                title='Measurement Count by Hour of Day',
+                color_discrete_sequence=['#2196F3'])
             fig_counts.update_layout(height=350, plot_bgcolor='white')
             st.plotly_chart(fig_counts, use_container_width=True)
 
@@ -378,7 +367,8 @@ elif page == " Temporal Analysis":
             harvest_hour.columns = ['Hour', 'Harvestability Rate']
             harvest_hour['Harvestability Rate'] = harvest_hour['Harvestability Rate'] * 100
             fig_harvest_hour = px.bar(harvest_hour, x='Hour', y='Harvestability Rate',
-                title='Harvestability Rate (%) by Hour', color_discrete_sequence=['#4CAF50'])
+                title='Harvestability Rate (%) by Hour',
+                color_discrete_sequence=['#4CAF50'])
             fig_harvest_hour.update_layout(height=350, plot_bgcolor='white',
                 yaxis_title='Harvestability Rate (%)')
             st.plotly_chart(fig_harvest_hour, use_container_width=True)
@@ -389,7 +379,8 @@ elif page == " Temporal Analysis":
             ["Three UK", "EE", "O2", "Vodafone"],
             default=["Three UK", "EE", "O2", "Vodafone"])
 
-        colors = {'Three UK': '#2196F3', 'EE': '#FF9800', 'O2': '#4CAF50', 'Vodafone': '#E91E63'}
+        colors = {'Three UK': '#2196F3', 'EE': '#FF9800',
+                  'O2': '#4CAF50', 'Vodafone': '#E91E63'}
         fig_dist = go.Figure()
         for op in operator_filter:
             col = rsrp_cols_ops[op]
@@ -399,7 +390,8 @@ elif page == " Temporal Analysis":
         fig_dist.add_vline(x=-40, line_dash="dash", line_color="red",
             annotation_text="-40 dBm threshold", annotation_position="top right")
         fig_dist.update_layout(barmode='overlay', title='RSRP Distribution by Operator',
-            xaxis_title='RSRP (dBm)', yaxis_title='Count', height=400, plot_bgcolor='white')
+            xaxis_title='RSRP (dBm)', yaxis_title='Count',
+            height=400, plot_bgcolor='white')
         st.plotly_chart(fig_dist, use_container_width=True)
 
 # ============================================================
@@ -434,7 +426,7 @@ elif page == " Model Performance":
 
         st.dataframe(model_results.style.apply(highlight_best, axis=1),
                      use_container_width=True, hide_index=True)
-        st.caption("— indicates the metric is undefined because the model predicted no positive cases. SVM Linear Kernel reflects extended tuning following supervisor feedback.")
+        st.caption("— indicates undefined metric (model predicted no positive cases). SVM Linear Kernel reflects extended tuning following supervisor feedback.")
         st.success("✅ XGBoost Tuned is the best performing model: F1 = 0.2769, Kappa = 0.2752, PR-AUC = 0.1739 (21× above random baseline)")
         st.markdown("---")
 
@@ -609,7 +601,6 @@ elif page == " Deployment Recommendations":
             """)
 
             col1, col2 = st.columns([1, 1])
-
             with col1:
                 borough_data = pd.DataFrame({
                     'Borough': ['Hillingdon', 'Harrow', 'Brent', 'Ealing', 'Enfield',
@@ -658,7 +649,6 @@ elif page == " Deployment Recommendations":
         st.markdown("Explore signal statistics for specific areas of London.")
 
         col1, col2 = st.columns(2)
-
         with col1:
             lat_input = st.number_input("Latitude", min_value=51.28, max_value=51.69,
                 value=51.5074, step=0.01)
@@ -673,7 +663,6 @@ elif page == " Deployment Recommendations":
                 (df['latitude'].between(lat_input - lat_deg, lat_input + lat_deg)) &
                 (df['longitude'].between(lon_input - lon_deg, lon_input + lon_deg))
             ]
-
             if len(nearby) > 0:
                 st.metric("Measurements in area", f"{len(nearby):,}")
                 st.metric("Harvestable locations", f"{nearby['harvestable'].sum():,}",
