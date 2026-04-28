@@ -11,20 +11,12 @@ import os
 import gdown
 warnings.filterwarnings('ignore')
 
-# ============================================================
-# PAGE CONFIGURATION
-# ============================================================
-
 st.set_page_config(
     page_title="RF Energy Harvestability — London",
     page_icon="📡",
     layout="wide",
     initial_sidebar_state="expanded"
 )
-
-# ============================================================
-# STYLING
-# ============================================================
 
 st.markdown("""
     <style>
@@ -37,9 +29,7 @@ st.markdown("""
         box-shadow: 0 2px 4px rgba(0,0,0,0.1);
         text-align: center;
     }
-    .stTabs [data-baseweb="tab-list"] {
-        gap: 8px;
-    }
+    .stTabs [data-baseweb="tab-list"] { gap: 8px; }
     .stTabs [data-baseweb="tab"] {
         background-color: white;
         border-radius: 6px;
@@ -52,44 +42,20 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
-# ============================================================
-# DATA PATHS
-# ============================================================
-
-
-# ============================================================
-# DATA LOADING
-# ============================================================
-
-import gdown
-import os
-
 @st.cache_data
 def load_main_data():
     file_id = "1LVLDCRkv-YMFakdl3l2DQ7WKfwTwmDAE"
     output = "london_4g_combined.csv"
     if not os.path.exists(output):
-        gdown.download(
-            f"https://drive.google.com/uc?id={file_id}",
-            output, quiet=False
-        )
+        gdown.download(f"https://drive.google.com/uc?id={file_id}", output, quiet=False)
     df = pd.read_csv(output, low_memory=False)
-    signal_cols = [
-        'rsrp_top1_3uk', 'rsrp_top1_ee',
-        'rsrp_top1_o2', 'rsrp_top1_vf'
-    ]
+    signal_cols = ['rsrp_top1_3uk', 'rsrp_top1_ee', 'rsrp_top1_o2', 'rsrp_top1_vf']
     for col in signal_cols:
         if col in df.columns:
             df[col] = df[col].replace(0, np.nan)
-    df['hour_of_day'] = pd.to_datetime(
-        df['hour_ref'], unit='s', utc=True
-    ).dt.hour
-    df['month'] = pd.to_datetime(
-        df['month_year'], dayfirst=True
-    ).dt.month
-    df['year'] = pd.to_datetime(
-        df['month_year'], dayfirst=True
-    ).dt.year
+    df['hour_of_day'] = pd.to_datetime(df['hour_ref'], unit='s', utc=True).dt.hour
+    df['month'] = pd.to_datetime(df['month_year'], dayfirst=True).dt.month
+    df['year'] = pd.to_datetime(df['month_year'], dayfirst=True).dt.year
     df['harvestable'] = (
         (df['rsrp_top1_3uk'].notna() & (df['rsrp_top1_3uk'] >= -40)) |
         (df['rsrp_top1_ee'].notna()  & (df['rsrp_top1_ee']  >= -40)) |
@@ -100,37 +66,24 @@ def load_main_data():
 
 @st.cache_data
 def load_results():
-    file_id = "1pTDf5bxEstRGWjE-53u8HuACUZ7UOIv5"
+    file_id = "1PsX2Ic5Hw1g1jctN46ma-vdd3YF0bKwc"
     output = "r_full_results.csv"
     if not os.path.exists(output):
-        gdown.download(
-            f"https://drive.google.com/uc?id={file_id}",
-            output, quiet=False
-        )
-    df = pd.read_csv(output)
-    return df
+        gdown.download(f"https://drive.google.com/uc?id={file_id}", output, quiet=False)
+    return pd.read_csv(output)
 
 @st.cache_data
 def load_scaled():
     file_id = "1QIL_f3papzxMqDPnvSSHhiekqLtg4NdP"
     output = "london_4g_scaled.csv"
     if not os.path.exists(output):
-        gdown.download(
-            f"https://drive.google.com/uc?id={file_id}",
-            output, quiet=False
-        )
-    df = pd.read_csv(output, low_memory=False)
-    return df
-
-# ============================================================
-# SIDEBAR
-# ============================================================
+        gdown.download(f"https://drive.google.com/uc?id={file_id}", output, quiet=False)
+    return pd.read_csv(output, low_memory=False)
 
 st.sidebar.image(
     "https://cdn.ymaws.com/elia.site-ym.com/resource/resmgr/news_items/university_east_london_logo.png",
     width=180
 )
-
 st.sidebar.markdown("---")
 st.sidebar.markdown("### 📡 RF Energy Harvestability")
 st.sidebar.markdown("**From Passive to Predictive Harvesting**")
@@ -138,22 +91,12 @@ st.sidebar.markdown("*MSc Data Science DS7010*")
 st.sidebar.markdown("*Nnenne Opemipo Agwunedu*")
 st.sidebar.markdown("*University of East London*")
 st.sidebar.markdown("---")
-
 st.sidebar.markdown("### Navigation")
 page = st.sidebar.radio(
     "Select Page",
-    [
-        " Overview",
-        " Geographic Map",
-        " Temporal Analysis",
-        " Model Performance",
-        " Deployment Recommendations"
-    ]
+    [" Overview", " Geographic Map", " Temporal Analysis",
+     " Model Performance", " Deployment Recommendations"]
 )
-
-# ============================================================
-# LOAD DATA
-# ============================================================
 
 with st.spinner("Loading dataset..."):
     try:
@@ -175,38 +118,17 @@ if page == " Overview":
 
     if data_loaded:
         col1, col2, col3, col4 = st.columns(4)
-
         with col1:
-            st.metric(
-                label="Total Measurements",
-                value=f"{len(df):,}",
-                delta="Ofcom 4G LTE 2024-2025"
-            )
-
+            st.metric("Total Measurements", f"{len(df):,}", "Ofcom 4G LTE 2024-2025")
         with col2:
-            harvestable_count = df['harvestable'].sum()
-            st.metric(
-                label="Harvestable Locations",
-                value=f"{harvestable_count:,}",
-                delta=f"{harvestable_count/len(df)*100:.2f}% of total"
-            )
-
+            hc = df['harvestable'].sum()
+            st.metric("Harvestable Locations", f"{hc:,}", f"{hc/len(df)*100:.2f}% of total")
         with col3:
-            st.metric(
-                label="Operators",
-                value="4",
-                delta="Three UK, EE, O2, Vodafone"
-            )
-
+            st.metric("Operators", "4", "Three UK, EE, O2, Vodafone")
         with col4:
-            st.metric(
-                label="Best Model",
-                value="XGBoost",
-                delta="F1 = 0.2769 | PR-AUC = 0.1739"
-            )
+            st.metric("Best Model", "XGBoost", "F1 = 0.2769 | PR-AUC = 0.1739")
 
         st.markdown("---")
-
         col1, col2 = st.columns(2)
 
         with col1:
@@ -229,46 +151,22 @@ if page == " Overview":
 
         with col2:
             st.markdown("### Key Findings")
-
-            # Class balance chart
             class_data = pd.DataFrame({
                 'Class': ['Not Harvestable', 'Harvestable'],
-                'Count': [
-                    len(df) - df['harvestable'].sum(),
-                    df['harvestable'].sum()
-                ]
+                'Count': [len(df) - df['harvestable'].sum(), df['harvestable'].sum()]
             })
-
-            fig = px.bar(
-                class_data,
-                x='Class',
-                y='Count',
-                color='Class',
-                color_discrete_map={
-                    'Not Harvestable': '#F44336',
-                    'Harvestable': '#4CAF50'
-                },
-                title='Harvestability Class Balance',
-                text='Count'
-            )
+            fig = px.bar(class_data, x='Class', y='Count', color='Class',
+                         color_discrete_map={'Not Harvestable': '#F44336', 'Harvestable': '#4CAF50'},
+                         title='Harvestability Class Balance', text='Count')
             fig.update_traces(texttemplate='%{text:,}', textposition='outside')
-            fig.update_layout(
-                showlegend=False,
-                height=350,
-                plot_bgcolor='white'
-            )
+            fig.update_layout(showlegend=False, height=350, plot_bgcolor='white')
             st.plotly_chart(fig, use_container_width=True)
 
         st.markdown("---")
         st.markdown("### RSRP Descriptive Statistics by Operator")
 
-        rsrp_cols = {
-            'Three UK': 'rsrp_top1_3uk',
-            'EE': 'rsrp_top1_ee',
-            'O2': 'rsrp_top1_o2',
-            'Vodafone': 'rsrp_top1_vf'
-        }
-
+        rsrp_cols = {'Three UK': 'rsrp_top1_3uk', 'EE': 'rsrp_top1_ee',
+                     'O2': 'rsrp_top1_o2', 'Vodafone': 'rsrp_top1_vf'}
         stats_data = []
         for op, col in rsrp_cols.items():
             if col in df.columns:
@@ -279,13 +177,9 @@ if page == " Overview":
                     'SD (dBm)': round(df[col].std(), 2),
                     'Min (dBm)': round(df[col].min(), 2),
                     'Max (dBm)': round(df[col].max(), 2),
-                    '% Below -40 dBm': round(
-                        (df[col] < -40).mean() * 100, 2
-                    )
+                    '% Below -40 dBm': round((df[col] < -40).mean() * 100, 2)
                 })
-
-        stats_df = pd.DataFrame(stats_data)
-        st.dataframe(stats_df, use_container_width=True, hide_index=True)
+        st.dataframe(pd.DataFrame(stats_data), use_container_width=True, hide_index=True)
 
 # ============================================================
 # PAGE 2: GEOGRAPHIC MAP
@@ -301,127 +195,97 @@ elif page == " Geographic Map":
 
         with col1:
             st.markdown("### Map Controls")
-
-            operator = st.selectbox(
-                "Select Operator",
-                ["All Operators", "Three UK", "EE", "O2", "Vodafone"]
-            )
-
-            map_type = st.radio(
-                "Display",
-                ["Harvestable Locations", "Signal Strength (RSRP)"]
-            )
-
-            sample_size = st.slider(
-                "Sample size (rows)",
-                min_value=1000,
-                max_value=20000,
-                value=5000,
-                step=1000
-            )
+            operator = st.selectbox("Select Operator",
+                ["All Operators", "Three UK", "EE", "O2", "Vodafone"])
+            map_type = st.radio("Display",
+                ["Harvestable Locations", "Signal Strength (RSRP)"])
+            sample_size = st.slider("Sample size (rows)", 1000, 20000, 5000, 1000)
 
             st.markdown("---")
-            st.markdown("**-40 dBm threshold** is the rectenna activation point (Agwunedu, 2022)")
+            st.markdown("### Harvestability Threshold")
+            threshold_dbm = st.slider(
+                "RSRP Threshold (dBm)",
+                min_value=-60, max_value=-20, value=-40, step=5,
+                help="Move to explore how harvestability changes at different signal thresholds. The study uses -40 dBm."
+            )
+
+            harvestable_at_threshold = (
+                (df['rsrp_top1_3uk'].notna() & (df['rsrp_top1_3uk'] >= threshold_dbm)) |
+                (df['rsrp_top1_ee'].notna()  & (df['rsrp_top1_ee']  >= threshold_dbm)) |
+                (df['rsrp_top1_o2'].notna()  & (df['rsrp_top1_o2']  >= threshold_dbm)) |
+                (df['rsrp_top1_vf'].notna()  & (df['rsrp_top1_vf']  >= threshold_dbm))
+            ).sum()
+            harvestable_pct = harvestable_at_threshold / len(df) * 100
+
+            if threshold_dbm == -40:
+                st.info(f"**Study threshold:** {threshold_dbm} dBm\n\n{harvestable_at_threshold:,} harvestable ({harvestable_pct:.2f}%)")
+            elif threshold_dbm < -40:
+                st.success(f"**Relaxed threshold:** {threshold_dbm} dBm\n\n{harvestable_at_threshold:,} harvestable ({harvestable_pct:.2f}%)")
+            else:
+                st.warning(f"**Strict threshold:** {threshold_dbm} dBm\n\n{harvestable_at_threshold:,} harvestable ({harvestable_pct:.2f}%)")
+
+            st.caption("-40 dBm is the rectenna activation point (Agwunedu, 2022)")
 
         with col2:
-            # Sample data for map performance
-            df_map = df.dropna(subset=['latitude', 'longitude']).sample(
-                min(sample_size, len(df)),
-                random_state=42
-            )
+            df_map = df.dropna(subset=['latitude', 'longitude']).copy()
+            df_map['harvestable_threshold'] = (
+                (df_map['rsrp_top1_3uk'].notna() & (df_map['rsrp_top1_3uk'] >= threshold_dbm)) |
+                (df_map['rsrp_top1_ee'].notna()  & (df_map['rsrp_top1_ee']  >= threshold_dbm)) |
+                (df_map['rsrp_top1_o2'].notna()  & (df_map['rsrp_top1_o2']  >= threshold_dbm)) |
+                (df_map['rsrp_top1_vf'].notna()  & (df_map['rsrp_top1_vf']  >= threshold_dbm))
+            ).astype(int)
+            df_map = df_map.sample(min(sample_size, len(df_map)), random_state=42)
 
-            # Filter by operator
-            op_col_map = {
-                "Three UK": "rsrp_top1_3uk",
-                "EE": "rsrp_top1_ee",
-                "O2": "rsrp_top1_o2",
-                "Vodafone": "rsrp_top1_vf"
-            }
+            op_col_map = {"Three UK": "rsrp_top1_3uk", "EE": "rsrp_top1_ee",
+                          "O2": "rsrp_top1_o2", "Vodafone": "rsrp_top1_vf"}
 
-            # Create folium map
-            m = folium.Map(
-                location=[51.5074, -0.1278],
-                zoom_start=10,
-                tiles='CartoDB positron'
-            )
+            m = folium.Map(location=[51.5074, -0.1278], zoom_start=10, tiles='CartoDB positron')
 
             if map_type == "Harvestable Locations":
-                harvestable_pts = df_map[df_map['harvestable'] == 1]
-                not_harvestable_pts = df_map[df_map['harvestable'] == 0].sample(
-                    min(2000, len(df_map[df_map['harvestable'] == 0])),
-                    random_state=42
-                )
+                harvestable_pts = df_map[df_map['harvestable_threshold'] == 1]
+                not_harvestable_pts = df_map[df_map['harvestable_threshold'] == 0].sample(
+                    min(2000, len(df_map[df_map['harvestable_threshold'] == 0])), random_state=42)
 
-                # Not harvestable points
                 for _, row in not_harvestable_pts.iterrows():
-                    folium.CircleMarker(
-                        location=[row['latitude'], row['longitude']],
-                        radius=2,
-                        color='#F44336',
-                        fill=True,
-                        fill_opacity=0.4,
-                        weight=0
-                    ).add_to(m)
+                    folium.CircleMarker(location=[row['latitude'], row['longitude']],
+                        radius=2, color='#F44336', fill=True, fill_opacity=0.4, weight=0).add_to(m)
 
-                # Harvestable points
                 for _, row in harvestable_pts.iterrows():
-                    folium.CircleMarker(
-                        location=[row['latitude'], row['longitude']],
-                        radius=5,
-                        color='#4CAF50',
-                        fill=True,
-                        fill_opacity=0.8,
-                        weight=1,
-                        popup=f"RSRP: Harvestable location"
-                    ).add_to(m)
+                    folium.CircleMarker(location=[row['latitude'], row['longitude']],
+                        radius=5, color='#4CAF50', fill=True, fill_opacity=0.8, weight=1,
+                        popup=f"Harvestable at {threshold_dbm} dBm").add_to(m)
 
-                # Legend
-                legend_html = '''
-                <div style="position: fixed; bottom: 30px; left: 30px; z-index: 1000;
-                     background-color: white; padding: 10px; border-radius: 8px;
-                     box-shadow: 0 2px 6px rgba(0,0,0,0.3); font-size: 13px;">
-                    <b>Harvestability</b><br>
-                    <span style="color:#4CAF50;">●</span> Harvestable (RSRP ≥ -40 dBm)<br>
+                legend_html = f'''
+                <div style="position:fixed;bottom:30px;left:30px;z-index:1000;
+                     background-color:white;padding:10px;border-radius:8px;
+                     box-shadow:0 2px 6px rgba(0,0,0,0.3);font-size:13px;">
+                    <b>Harvestability at {threshold_dbm} dBm</b><br>
+                    <span style="color:#4CAF50;">●</span> Harvestable ({len(harvestable_pts):,} pts)<br>
                     <span style="color:#F44336;">●</span> Not Harvestable
                 </div>'''
                 m.get_root().html.add_child(folium.Element(legend_html))
 
             else:
-                # Signal strength map
-                if operator == "All Operators":
-                    rsrp_col = 'rsrp_top1_vf'
-                    op_label = "Vodafone"
-                else:
-                    rsrp_col = op_col_map[operator]
-                    op_label = operator
-
+                rsrp_col = op_col_map.get(operator, 'rsrp_top1_vf')
+                op_label = operator if operator != "All Operators" else "Vodafone"
                 df_rsrp = df_map.dropna(subset=[rsrp_col])
 
                 for _, row in df_rsrp.iterrows():
                     rsrp_val = row[rsrp_col]
-                    # Color scale: red (weak) to green (strong)
-                    normalized = (rsrp_val - (-120)) / (-40 - (-120))
-                    normalized = max(0, min(1, normalized))
+                    normalized = max(0, min(1, (rsrp_val - (-120)) / (threshold_dbm - (-120))))
                     r = int(255 * (1 - normalized))
                     g = int(255 * normalized)
                     color = f'#{r:02x}{g:02x}00'
+                    folium.CircleMarker(location=[row['latitude'], row['longitude']],
+                        radius=2, color=color, fill=True, fill_opacity=0.6, weight=0,
+                        popup=f"{op_label} RSRP: {rsrp_val:.1f} dBm").add_to(m)
 
-                    folium.CircleMarker(
-                        location=[row['latitude'], row['longitude']],
-                        radius=2,
-                        color=color,
-                        fill=True,
-                        fill_opacity=0.6,
-                        weight=0,
-                        popup=f"{op_label} RSRP: {rsrp_val:.1f} dBm"
-                    ).add_to(m)
-
-                legend_html = '''
-                <div style="position: fixed; bottom: 30px; left: 30px; z-index: 1000;
-                     background-color: white; padding: 10px; border-radius: 8px;
-                     box-shadow: 0 2px 6px rgba(0,0,0,0.3); font-size: 13px;">
+                legend_html = f'''
+                <div style="position:fixed;bottom:30px;left:30px;z-index:1000;
+                     background-color:white;padding:10px;border-radius:8px;
+                     box-shadow:0 2px 6px rgba(0,0,0,0.3);font-size:13px;">
                     <b>RSRP Signal Strength</b><br>
-                    <span style="color:#00ff00;">●</span> Strong (near -40 dBm)<br>
+                    <span style="color:#00ff00;">●</span> Strong (near {threshold_dbm} dBm)<br>
                     <span style="color:#ff8800;">●</span> Moderate<br>
                     <span style="color:#ff0000;">●</span> Weak (near -120 dBm)
                 </div>'''
@@ -429,28 +293,36 @@ elif page == " Geographic Map":
 
             st_folium(m, width=800, height=550)
 
-        # Summary stats below map
+        st.markdown("---")
+        st.markdown("### Threshold Sensitivity Analysis")
+        st.markdown("How harvestability changes across different RSRP thresholds:")
+
+        threshold_data = []
+        for t in [-60, -55, -50, -45, -40, -35, -30]:
+            count = (
+                (df['rsrp_top1_3uk'].notna() & (df['rsrp_top1_3uk'] >= t)) |
+                (df['rsrp_top1_ee'].notna()  & (df['rsrp_top1_ee']  >= t)) |
+                (df['rsrp_top1_o2'].notna()  & (df['rsrp_top1_o2']  >= t)) |
+                (df['rsrp_top1_vf'].notna()  & (df['rsrp_top1_vf']  >= t))
+            ).sum()
+            threshold_data.append({
+                'Threshold (dBm)': t,
+                'Harvestable Count': f"{count:,}",
+                'Harvestable (%)': f"{count/len(df)*100:.2f}%",
+                'Note': '← Study threshold' if t == -40 else ''
+            })
+
+        st.dataframe(pd.DataFrame(threshold_data), use_container_width=True, hide_index=True)
+
         st.markdown("---")
         col1, col2, col3 = st.columns(3)
-
         with col1:
-            st.metric(
-                "Harvestable Locations",
-                f"{df['harvestable'].sum():,}",
-                f"{df['harvestable'].mean()*100:.2f}% of dataset"
-            )
+            st.metric("Harvestable at Study Threshold", f"{df['harvestable'].sum():,}",
+                      f"{df['harvestable'].mean()*100:.2f}% of dataset")
         with col2:
-            st.metric(
-                "Strongest Mean Signal",
-                "Vodafone",
-                "-71.36 dBm average RSRP"
-            )
+            st.metric("Strongest Mean Signal", "Vodafone", "-71.36 dBm average RSRP")
         with col3:
-            st.metric(
-                "Most Restricted",
-                "O2",
-                "99.95% below -40 dBm threshold"
-            )
+            st.metric("Most Restricted", "O2", "99.95% below -40 dBm threshold")
 
 # ============================================================
 # PAGE 3: TEMPORAL ANALYSIS
@@ -462,16 +334,10 @@ elif page == " Temporal Analysis":
     st.markdown("---")
 
     if data_loaded:
-
-        # Hourly mean RSRP
         st.markdown("### Mean RSRP by Hour of Day")
 
-        rsrp_cols_ops = {
-            'Three UK': 'rsrp_top1_3uk',
-            'EE': 'rsrp_top1_ee',
-            'O2': 'rsrp_top1_o2',
-            'Vodafone': 'rsrp_top1_vf'
-        }
+        rsrp_cols_ops = {'Three UK': 'rsrp_top1_3uk', 'EE': 'rsrp_top1_ee',
+                         'O2': 'rsrp_top1_o2', 'Vodafone': 'rsrp_top1_vf'}
 
         hourly_data = []
         for op, col in rsrp_cols_ops.items():
@@ -482,138 +348,58 @@ elif page == " Temporal Analysis":
                 hourly_data.append(hourly)
 
         hourly_df = pd.concat(hourly_data)
-
-        fig_hourly = px.line(
-            hourly_df,
-            x='Hour',
-            y='Mean RSRP',
-            color='Operator',
+        fig_hourly = px.line(hourly_df, x='Hour', y='Mean RSRP', color='Operator',
             title='Mean RSRP by Hour of Day — All Operators',
-            color_discrete_map={
-                'Three UK': '#2196F3',
-                'EE': '#FF9800',
-                'O2': '#4CAF50',
-                'Vodafone': '#E91E63'
-            },
-            markers=True
-        )
-
-        fig_hourly.add_hline(
-            y=-40,
-            line_dash="dash",
-            line_color="red",
-            annotation_text="-40 dBm threshold",
-            annotation_position="right"
-        )
-
-        fig_hourly.update_layout(
-            height=450,
-            plot_bgcolor='white',
-            xaxis=dict(
-                tickmode='array',
-                tickvals=sorted(df['hour_of_day'].unique()),
-                title='Hour of Day'
-            ),
-            yaxis_title='Mean RSRP (dBm)'
-        )
-
+            color_discrete_map={'Three UK': '#2196F3', 'EE': '#FF9800',
+                                'O2': '#4CAF50', 'Vodafone': '#E91E63'}, markers=True)
+        fig_hourly.add_hline(y=-40, line_dash="dash", line_color="red",
+            annotation_text="-40 dBm threshold", annotation_position="right")
+        fig_hourly.update_layout(height=450, plot_bgcolor='white',
+            xaxis=dict(tickmode='array', tickvals=sorted(df['hour_of_day'].unique()),
+                       title='Hour of Day'), yaxis_title='Mean RSRP (dBm)')
         st.plotly_chart(fig_hourly, use_container_width=True)
-
         st.info("⚠️ Hours 7 and 14 are absent from the dataset due to Ofcom's drive-test scheduling.")
 
         st.markdown("---")
-
         col1, col2 = st.columns(2)
 
         with col1:
-            # Measurement count by hour
             st.markdown("### Measurement Count by Hour")
             hour_counts = df['hour_of_day'].value_counts().sort_index().reset_index()
             hour_counts.columns = ['Hour', 'Count']
-
-            fig_counts = px.bar(
-                hour_counts,
-                x='Hour',
-                y='Count',
-                title='Measurement Count by Hour of Day',
-                color_discrete_sequence=['#2196F3']
-            )
-            fig_counts.update_layout(
-                height=350,
-                plot_bgcolor='white'
-            )
+            fig_counts = px.bar(hour_counts, x='Hour', y='Count',
+                title='Measurement Count by Hour of Day', color_discrete_sequence=['#2196F3'])
+            fig_counts.update_layout(height=350, plot_bgcolor='white')
             st.plotly_chart(fig_counts, use_container_width=True)
 
         with col2:
-            # Harvestability by hour
             st.markdown("### Harvestability Rate by Hour")
             harvest_hour = df.groupby('hour_of_day')['harvestable'].mean().reset_index()
             harvest_hour.columns = ['Hour', 'Harvestability Rate']
             harvest_hour['Harvestability Rate'] = harvest_hour['Harvestability Rate'] * 100
-
-            fig_harvest_hour = px.bar(
-                harvest_hour,
-                x='Hour',
-                y='Harvestability Rate',
-                title='Harvestability Rate (%) by Hour',
-                color_discrete_sequence=['#4CAF50']
-            )
-            fig_harvest_hour.update_layout(
-                height=350,
-                plot_bgcolor='white',
-                yaxis_title='Harvestability Rate (%)'
-            )
+            fig_harvest_hour = px.bar(harvest_hour, x='Hour', y='Harvestability Rate',
+                title='Harvestability Rate (%) by Hour', color_discrete_sequence=['#4CAF50'])
+            fig_harvest_hour.update_layout(height=350, plot_bgcolor='white',
+                yaxis_title='Harvestability Rate (%)')
             st.plotly_chart(fig_harvest_hour, use_container_width=True)
 
         st.markdown("---")
-
-        # RSRP Distribution by operator
         st.markdown("### RSRP Distribution by Operator")
-
-        operator_filter = st.multiselect(
-            "Select Operators",
+        operator_filter = st.multiselect("Select Operators",
             ["Three UK", "EE", "O2", "Vodafone"],
-            default=["Three UK", "EE", "O2", "Vodafone"]
-        )
+            default=["Three UK", "EE", "O2", "Vodafone"])
 
+        colors = {'Three UK': '#2196F3', 'EE': '#FF9800', 'O2': '#4CAF50', 'Vodafone': '#E91E63'}
         fig_dist = go.Figure()
-
-        colors = {
-            'Three UK': '#2196F3',
-            'EE': '#FF9800',
-            'O2': '#4CAF50',
-            'Vodafone': '#E91E63'
-        }
-
         for op in operator_filter:
             col = rsrp_cols_ops[op]
             if col in df.columns:
-                data = df[col].dropna()
-                fig_dist.add_trace(go.Histogram(
-                    x=data,
-                    name=op,
-                    opacity=0.7,
-                    nbinsx=80,
-                    marker_color=colors[op]
-                ))
-
-        fig_dist.add_vline(
-            x=-40,
-            line_dash="dash",
-            line_color="red",
-            annotation_text="-40 dBm threshold",
-            annotation_position="top right"
-        )
-
-        fig_dist.update_layout(
-            barmode='overlay',
-            title='RSRP Distribution by Operator',
-            xaxis_title='RSRP (dBm)',
-            yaxis_title='Count',
-            height=400,
-            plot_bgcolor='white'
-        )
-
+                fig_dist.add_trace(go.Histogram(x=df[col].dropna(), name=op,
+                    opacity=0.7, nbinsx=80, marker_color=colors[op]))
+        fig_dist.add_vline(x=-40, line_dash="dash", line_color="red",
+            annotation_text="-40 dBm threshold", annotation_position="top right")
+        fig_dist.update_layout(barmode='overlay', title='RSRP Distribution by Operator',
+            xaxis_title='RSRP (dBm)', yaxis_title='Count', height=400, plot_bgcolor='white')
         st.plotly_chart(fig_dist, use_container_width=True)
 
 # ============================================================
@@ -626,167 +412,98 @@ elif page == " Model Performance":
     st.markdown("---")
 
     if data_loaded:
-
-        # Full results table
         st.markdown("### Model Results: Time-Based Split (R Implementation)")
 
-        # Use hardcoded definitive results
         model_results = pd.DataFrame({
-            'Model': [
-                'RF Baseline', 'RF Tuned (ntree=200, mtry=7)',
-                'XGBoost Baseline', 'XGBoost Tuned',
-                'SVM Baseline', 'SVM Tuned (gamma=1, cost=1)',
-                'LSTM (all configs)'
-            ],
-            'Precision': [1.0000, 1.0000, 1.0000, 1.0000, 'NaN', 'NaN', 0.0083],
-            'Recall': [0.0514, 0.1574, 0.1607, 0.1607, 0.0000, 0.0000, 1.0000],
-            'F1': [0.0977, 0.2720, 0.2769, 0.2769, 'N/A', 'N/A', 0.0165],
-            'ROC-AUC': [0.5807, 0.5663, 0.5803, 0.5803, 0.5023, 0.8344, '0.46-0.52'],
-            'PR-AUC': [0.1717, 0.1700, 0.1739, 0.1739, 0.0133, 0.0334, 'N/A'],
-            'Kappa': [0.0970, 0.2703, 0.2752, 0.2752, 0.0000, 0.0000, 0.0000]
+            'Model': ['RF Baseline', 'RF Tuned (ntree=200, mtry=7)',
+                      'XGBoost Baseline', 'XGBoost Tuned',
+                      'SVM Baseline', 'SVM Tuned (gamma=1, cost=1)',
+                      'SVM Linear Kernel', 'LSTM (all configs)'],
+            'Precision': [1.0000, 1.0000, 1.0000, 1.0000, '—', '—', 0.2928, 0.0083],
+            'Recall':    [0.0514, 0.1574, 0.1607, 0.1607, 0.0000, 0.0000, 0.0495, 1.0000],
+            'F1':        [0.0977, 0.2720, 0.2769, 0.2769, '—', '—', 0.0847, 0.0165],
+            'ROC-AUC':   [0.5807, 0.5663, 0.5803, 0.5803, 0.5023, 0.8344, 0.5681, '0.46–0.52'],
+            'PR-AUC':    [0.1717, 0.1700, 0.1739, 0.1739, 0.0133, 0.0334, 0.0440, '—'],
+            'Kappa':     [0.0970, 0.2703, 0.2752, 0.2752, 0.0000, 0.0000, 0.0825, 0.0000]
         })
 
-        # Highlight best model
         def highlight_best(row):
-            if 'XGBoost Tuned' in row['Model']:
+            if 'XGBoost Tuned' in str(row['Model']):
                 return ['background-color: #E8F5E9'] * len(row)
             return [''] * len(row)
 
-        st.dataframe(
-            model_results.style.apply(highlight_best, axis=1),
-            use_container_width=True,
-            hide_index=True
-        )
-
-        st.success("✅ XGBoost Tuned is the best performing model: highlighted in green")
+        st.dataframe(model_results.style.apply(highlight_best, axis=1),
+                     use_container_width=True, hide_index=True)
+        st.caption("— indicates the metric is undefined because the model predicted no positive cases. SVM Linear Kernel reflects extended tuning following supervisor feedback.")
+        st.success("✅ XGBoost Tuned is the best performing model: F1 = 0.2769, Kappa = 0.2752, PR-AUC = 0.1739 (21× above random baseline)")
         st.markdown("---")
 
         col1, col2 = st.columns(2)
 
         with col1:
-            # F1 comparison bar chart
             f1_data = pd.DataFrame({
-                'Model': ['RF Baseline', 'RF Tuned', 'XGBoost', 'XGBoost Tuned', 'LSTM'],
-                'F1': [0.0977, 0.2720, 0.2769, 0.2769, 0.0165]
+                'Model': ['RF Baseline', 'RF Tuned', 'XGBoost', 'XGBoost Tuned', 'SVM Linear', 'LSTM'],
+                'F1': [0.0977, 0.2720, 0.2769, 0.2769, 0.0847, 0.0165]
             })
-
-            fig_f1 = px.bar(
-                f1_data,
-                x='Model',
-                y='F1',
-                title='F1 Score Comparison',
-                color='F1',
-                color_continuous_scale='Blues',
-                text='F1'
-            )
+            fig_f1 = px.bar(f1_data, x='Model', y='F1', title='F1 Score Comparison',
+                color='F1', color_continuous_scale='Blues', text='F1')
             fig_f1.update_traces(texttemplate='%{text:.4f}', textposition='outside')
-            fig_f1.update_layout(
-                height=400,
-                plot_bgcolor='white',
-                showlegend=False,
-                xaxis_tickangle=-30
-            )
+            fig_f1.update_layout(height=400, plot_bgcolor='white',
+                showlegend=False, xaxis_tickangle=-30)
             st.plotly_chart(fig_f1, use_container_width=True)
 
         with col2:
-            # PR-AUC comparison
             prauc_data = pd.DataFrame({
                 'Model': ['RF Baseline', 'RF Tuned', 'XGBoost', 'XGBoost Tuned',
-                          'SVM Baseline', 'SVM Tuned'],
-                'PR-AUC': [0.1717, 0.1700, 0.1739, 0.1739, 0.0133, 0.0334]
+                          'SVM Baseline', 'SVM Tuned', 'SVM Linear'],
+                'PR-AUC': [0.1717, 0.1700, 0.1739, 0.1739, 0.0133, 0.0334, 0.0440]
             })
-
-            fig_prauc = px.bar(
-                prauc_data,
-                x='Model',
-                y='PR-AUC',
+            fig_prauc = px.bar(prauc_data, x='Model', y='PR-AUC',
                 title='PR-AUC Comparison (random baseline = 0.0083)',
-                color='PR-AUC',
-                color_continuous_scale='Greens',
-                text='PR-AUC'
-            )
+                color='PR-AUC', color_continuous_scale='Greens', text='PR-AUC')
             fig_prauc.update_traces(texttemplate='%{text:.4f}', textposition='outside')
-            fig_prauc.add_hline(
-                y=0.0083,
-                line_dash="dash",
-                line_color="red",
-                annotation_text="Random baseline"
-            )
-            fig_prauc.update_layout(
-                height=400,
-                plot_bgcolor='white',
-                showlegend=False,
-                xaxis_tickangle=-30
-            )
+            fig_prauc.add_hline(y=0.0083, line_dash="dash", line_color="red",
+                annotation_text="Random baseline")
+            fig_prauc.update_layout(height=400, plot_bgcolor='white',
+                showlegend=False, xaxis_tickangle=-30)
             st.plotly_chart(fig_prauc, use_container_width=True)
 
         st.markdown("---")
-
         col1, col2 = st.columns(2)
 
         with col1:
-            # Confusion matrix summary
             st.markdown("### Confusion Matrix Counts")
-
             cm_data = pd.DataFrame({
-                'Model': [
-                    'RF Baseline', 'RF Tuned',
-                    'XGBoost Baseline', 'XGBoost Tuned',
-                    'SVM (all)', 'LSTM (all)'
-                ],
-                'TN': [255188, 255188, 255188, 255188, 255188, 0],
-                'FP': [0, 0, 0, 0, 0, 255188],
-                'FN': [2031, 1804, 1797, 1797, 2141, 0],
-                'TP': [110, 337, 344, 344, 0, 2141]
+                'Model': ['RF Baseline', 'RF Tuned', 'XGBoost Baseline', 'XGBoost Tuned',
+                          'SVM (all configs)', 'SVM Linear Kernel', 'LSTM (all configs)'],
+                'TN': [255188, 255188, 255188, 255188, 255188, 254932, 0],
+                'FP': [0, 0, 0, 0, 0, 256, 255188],
+                'FN': [2031, 1804, 1797, 1797, 2141, 2035, 0],
+                'TP': [110, 337, 344, 344, 0, 106, 2141]
             })
-
             st.dataframe(cm_data, use_container_width=True, hide_index=True)
 
         with col2:
-            # TP comparison
             st.markdown("### True Positives Found")
             st.markdown("*Out of 2,141 harvestable locations in test set*")
-
             tp_data = pd.DataFrame({
-                'Model': ['RF Baseline', 'RF Tuned', 'XGBoost', 'SVM', 'LSTM'],
-                'True Positives': [110, 337, 344, 0, 2141],
-                'Note': [
-                    'Zero FP',
-                    'Zero FP',
-                    'Zero FP — Best',
-                    'Zero TP',
-                    'All FP — collapsed'
-                ]
+                'Model': ['RF Baseline', 'RF Tuned', 'XGBoost', 'SVM Linear', 'SVM', 'LSTM'],
+                'True Positives': [110, 337, 344, 106, 0, 2141]
             })
-
-            fig_tp = px.bar(
-                tp_data,
-                x='Model',
-                y='True Positives',
+            fig_tp = px.bar(tp_data, x='Model', y='True Positives',
                 title='Harvestable Locations Correctly Identified',
-                color='True Positives',
-                color_continuous_scale='RdYlGn',
-                text='True Positives'
-            )
-            fig_tp.add_hline(
-                y=2141,
-                line_dash="dash",
-                line_color="gray",
-                annotation_text="Total harvestable = 2,141"
-            )
+                color='True Positives', color_continuous_scale='RdYlGn', text='True Positives')
+            fig_tp.add_hline(y=2141, line_dash="dash", line_color="gray",
+                annotation_text="Total harvestable = 2,141")
             fig_tp.update_traces(textposition='outside')
-            fig_tp.update_layout(
-                height=350,
-                plot_bgcolor='white',
-                showlegend=False
-            )
+            fig_tp.update_layout(height=350, plot_bgcolor='white', showlegend=False)
             st.plotly_chart(fig_tp, use_container_width=True)
 
         st.markdown("---")
         st.markdown("### Random Split vs Time-Based Split")
         st.warning("""
         **Random split** produced perfect scores (F1 = 1.0000) because September 2025 
-        accounts for 94% of the dataset, training and test sets were near-identical. 
+        accounts for 94% of the dataset — training and test sets were near-identical. 
         The **time-based split** is the honest evaluation: train on 2024 and August 2025, 
         test on September 2025. The contrast reveals the true difficulty of generalising 
         to future unseen measurements.
@@ -802,11 +519,9 @@ elif page == " Deployment Recommendations":
     st.markdown("---")
 
     if data_loaded:
+        st.markdown("### Five Key Recommendations")
 
-        st.markdown("### Four Key Recommendations")
-
-        # Recommendation 1
-        with st.expander("📍 1. Deploy where Vodafone and Three UK signal is strongest", expanded=True):
+        with st.expander("📍 1. Prioritise areas with stronger measured signal strength (Vodafone and Three UK)", expanded=True):
             col1, col2 = st.columns([2, 1])
             with col1:
                 st.markdown("""
@@ -815,36 +530,23 @@ elif page == " Deployment Recommendations":
                 Three UK followed at **-73.48 dBm**.
 
                 Locations where **multiple operators simultaneously approach -40 dBm** 
-                represent the most reliable harvesting opportunities. Single-operator 
-                dependence increases the risk of harvesting failure when network load drops.
+                represent the most reliable harvesting opportunities. Deploying at locations 
+                where only one operator reaches threshold may be less robust to 
+                operator-specific variation over time.
                 """)
             with col2:
                 op_means = pd.DataFrame({
                     'Operator': ['Vodafone', 'Three UK', 'O2', 'EE'],
                     'Mean RSRP': [-71.36, -73.48, -75.32, -76.44]
                 })
-                fig_op = px.bar(
-                    op_means,
-                    x='Operator',
-                    y='Mean RSRP',
-                    color='Operator',
-                    color_discrete_map={
-                        'Three UK': '#2196F3',
-                        'EE': '#FF9800',
-                        'O2': '#4CAF50',
-                        'Vodafone': '#E91E63'
-                    },
-                    title='Mean RSRP by Operator'
-                )
+                fig_op = px.bar(op_means, x='Operator', y='Mean RSRP', color='Operator',
+                    color_discrete_map={'Three UK': '#2196F3', 'EE': '#FF9800',
+                                        'O2': '#4CAF50', 'Vodafone': '#E91E63'},
+                    title='Mean RSRP by Operator')
                 fig_op.add_hline(y=-40, line_dash="dash", line_color="red")
-                fig_op.update_layout(
-                    height=250,
-                    showlegend=False,
-                    plot_bgcolor='white'
-                )
+                fig_op.update_layout(height=250, showlegend=False, plot_bgcolor='white')
                 st.plotly_chart(fig_op, use_container_width=True)
 
-        # Recommendation 2
         with st.expander("🤖 2. Use XGBoost predictions to shortlist deployment locations"):
             col1, col2 = st.columns([2, 1])
             with col1:
@@ -865,7 +567,6 @@ elif page == " Deployment Recommendations":
                 st.metric("Precision", "1.0000")
                 st.metric("Recall", "16.07%")
 
-        # Recommendation 3
         with st.expander("⏱️ 3. Avoid deployment during low-signal hours"):
             col1, col2 = st.columns([2, 1])
             with col1:
@@ -873,8 +574,8 @@ elif page == " Deployment Recommendations":
                 Signal variation across measured hours reached **up to 15 dBm** 
                 between the lowest and highest hourly mean values.
 
-                For locations where harvesting viability is borderline, RSRP values 
-                close to but not reliably above -40 dBm, operational scheduling that 
+                For locations where harvesting viability is borderline — RSRP values 
+                close to but not reliably above -40 dBm — operational scheduling that 
                 prioritises energy-intensive tasks during historically stronger signal 
                 hours will improve overall energy budget reliability.
 
@@ -882,27 +583,63 @@ elif page == " Deployment Recommendations":
                 drive-test scheduling constraints.
                 """)
             with col2:
-                # Quick hourly chart
                 hourly_vf = df.groupby('hour_of_day')['rsrp_top1_vf'].mean().reset_index()
                 hourly_vf.columns = ['Hour', 'Mean RSRP']
-
-                fig_h = px.line(
-                    hourly_vf,
-                    x='Hour',
-                    y='Mean RSRP',
+                fig_h = px.line(hourly_vf, x='Hour', y='Mean RSRP',
                     title='Vodafone Mean RSRP by Hour',
-                    color_discrete_sequence=['#E91E63'],
-                    markers=True
-                )
+                    color_discrete_sequence=['#E91E63'], markers=True)
                 fig_h.add_hline(y=-40, line_dash="dash", line_color="red")
                 fig_h.update_layout(height=250, plot_bgcolor='white')
                 st.plotly_chart(fig_h, use_container_width=True)
 
-        # Recommendation 4
-        with st.expander("📶 4. Plan for the 5G transition"):
+        with st.expander("🗺️ 4. Prioritise West London boroughs for initial deployment"):
             st.markdown("""
-            The Ofcom 5G dataset containing **150,423 measurements** across Greater London 
-            was identified during data collection but kept separate from this analysis.
+            Borough-level spatial analysis identified **Hillingdon** as the highest-harvestability 
+            borough at **2.18%**, followed by Harrow (1.38%), Brent (1.25%), and Ealing (1.22%). 
+            These four boroughs form a contiguous cluster in West London.
+
+            **Hounslow**, adjacent to Hillingdon, recorded **zero harvestable locations** 
+            despite 7,054 measurements — demonstrating that proximity alone does not guarantee 
+            harvestability and that borough-level planning must be grounded in measurement data 
+            rather than geographic assumption.
+
+            WSN planners targeting initial deployments should prioritise the West London cluster 
+            while treating the borough analysis as a starting point pending full spatial 
+            coverage across all 33 London boroughs.
+            """)
+
+            col1, col2 = st.columns([1, 1])
+
+            with col1:
+                borough_data = pd.DataFrame({
+                    'Borough': ['Hillingdon', 'Harrow', 'Brent', 'Ealing', 'Enfield',
+                                'Redbridge', 'Barnet', 'Waltham Forest', 'Hounslow'],
+                    'Harvestability Rate (%)': [2.18, 1.38, 1.25, 1.22, 0.86,
+                                                0.38, 0.37, 0.22, 0.00]
+                })
+                fig_borough = px.bar(borough_data, x='Borough', y='Harvestability Rate (%)',
+                    title='Harvestability Rate by London Borough',
+                    color='Harvestability Rate (%)', color_continuous_scale='Greens',
+                    text='Harvestability Rate (%)')
+                fig_borough.update_traces(texttemplate='%{text:.2f}%', textposition='outside')
+                fig_borough.update_layout(height=400, plot_bgcolor='white',
+                    showlegend=False, xaxis_tickangle=-30)
+                st.plotly_chart(fig_borough, use_container_width=True)
+
+            with col2:
+                if os.path.exists("spatial plot.jpeg"):
+                    st.image(
+                        "spatial plot.jpeg",
+                        caption="RF Harvestability Rate by London Borough (%)",
+                        use_container_width=True
+                    )
+                else:
+                    st.info("Borough spatial map: add 'spatial plot.jpeg' to the repository.")
+
+        with st.expander("📶 5. Plan for the 5G transition"):
+            st.markdown("""
+            The Ofcom 5G dataset covering Greater London was identified during data collection 
+            but not analysed within this study's timeframe.
 
             As London's cellular infrastructure transitions from 4G LTE to 5G NR, 
             signal characteristics that drive harvestability will change. 5G operates 
@@ -917,35 +654,21 @@ elif page == " Deployment Recommendations":
             """)
 
         st.markdown("---")
-
-        # Interactive location checker
         st.markdown("### Signal Strength Explorer")
         st.markdown("Explore signal statistics for specific areas of London.")
 
         col1, col2 = st.columns(2)
 
         with col1:
-            lat_input = st.number_input(
-                "Latitude",
-                min_value=51.28,
-                max_value=51.69,
-                value=51.5074,
-                step=0.01
-            )
-            lon_input = st.number_input(
-                "Longitude",
-                min_value=-0.51,
-                max_value=0.33,
-                value=-0.1278,
-                step=0.01
-            )
+            lat_input = st.number_input("Latitude", min_value=51.28, max_value=51.69,
+                value=51.5074, step=0.01)
+            lon_input = st.number_input("Longitude", min_value=-0.51, max_value=0.33,
+                value=-0.1278, step=0.01)
             radius = st.slider("Search radius (km)", 0.5, 5.0, 1.0, 0.5)
 
         with col2:
-            # Find nearby measurements
             lat_deg = radius / 111
             lon_deg = radius / (111 * np.cos(np.radians(lat_input)))
-
             nearby = df[
                 (df['latitude'].between(lat_input - lat_deg, lat_input + lat_deg)) &
                 (df['longitude'].between(lon_input - lon_deg, lon_input + lon_deg))
@@ -953,26 +676,17 @@ elif page == " Deployment Recommendations":
 
             if len(nearby) > 0:
                 st.metric("Measurements in area", f"{len(nearby):,}")
-                st.metric(
-                    "Harvestable locations",
-                    f"{nearby['harvestable'].sum():,}",
-                    f"{nearby['harvestable'].mean()*100:.2f}%"
-                )
-
+                st.metric("Harvestable locations", f"{nearby['harvestable'].sum():,}",
+                          f"{nearby['harvestable'].mean()*100:.2f}%")
                 rsrp_means = {
                     'Three UK': nearby['rsrp_top1_3uk'].mean(),
                     'EE': nearby['rsrp_top1_ee'].mean(),
                     'O2': nearby['rsrp_top1_o2'].mean(),
                     'Vodafone': nearby['rsrp_top1_vf'].mean()
                 }
-
                 best_op = max(rsrp_means, key=rsrp_means.get)
-                st.metric(
-                    "Strongest operator nearby",
-                    best_op,
-                    f"{rsrp_means[best_op]:.2f} dBm"
-                )
-
+                st.metric("Strongest operator nearby", best_op,
+                          f"{rsrp_means[best_op]:.2f} dBm")
                 if nearby['harvestable'].mean() > 0.005:
                     st.success("✅ This area has above-average harvestability potential")
                 else:
@@ -987,7 +701,7 @@ elif page == " Deployment Recommendations":
 
         This research demonstrates that machine learning can identify confirmed RF 
         harvestable locations across London with perfect precision. XGBoost identified 
-        344 locations with zero false positives, every flagged location genuinely meets 
+        344 locations with zero false positives — every flagged location genuinely meets 
         the -40 dBm rectenna activation threshold.
 
         While recall is limited to 16.1%, partial identification of harvestable locations 
