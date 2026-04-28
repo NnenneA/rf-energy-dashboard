@@ -11,7 +11,7 @@ import gdown
 warnings.filterwarnings('ignore')
 
 st.set_page_config(
-    page_title="RF Energy Harvestability — London",
+    page_title="RF Energy Harvestability : London",
     page_icon="📡",
     layout="wide",
     initial_sidebar_state="expanded"
@@ -337,7 +337,7 @@ elif page == " Temporal Analysis":
 
         hourly_df = pd.concat(hourly_data)
         fig_hourly = px.line(hourly_df, x='Hour', y='Mean RSRP', color='Operator',
-            title='Mean RSRP by Hour of Day — All Operators',
+            title='Mean RSRP by Hour of Day : All Operators',
             color_discrete_map={'Three UK': '#2196F3', 'EE': '#FF9800',
                                 'O2': '#4CAF50', 'Vodafone': '#E91E63'}, markers=True)
         fig_hourly.add_hline(y=-40, line_dash="dash", line_color="red",
@@ -495,7 +495,7 @@ elif page == " Model Performance":
         st.markdown("### Random Split vs Time-Based Split")
         st.warning("""
         **Random split** produced perfect scores (F1 = 1.0000) because September 2025 
-        accounts for 94% of the dataset — training and test sets were near-identical. 
+        accounts for 94% of the dataset, training and test sets were near-identical. 
         The **time-based split** is the honest evaluation: train on 2024 and August 2025, 
         test on September 2025. The contrast reveals the true difficulty of generalising 
         to future unseen measurements.
@@ -566,8 +566,8 @@ elif page == " Deployment Recommendations":
                 Signal variation across measured hours reached **up to 15 dBm** 
                 between the lowest and highest hourly mean values.
 
-                For locations where harvesting viability is borderline — RSRP values 
-                close to but not reliably above -40 dBm — operational scheduling that 
+                For locations where harvesting viability is borderline, RSRP values 
+                close to but not reliably above -40 dBm, operational scheduling that 
                 prioritises energy-intensive tasks during historically stronger signal 
                 hours will improve overall energy budget reliability.
 
@@ -591,7 +591,7 @@ elif page == " Deployment Recommendations":
             These four boroughs form a contiguous cluster in West London.
 
             **Hounslow**, adjacent to Hillingdon, recorded **zero harvestable locations** 
-            despite 7,054 measurements — demonstrating that proximity alone does not guarantee 
+            despite 7,054 measurements, demonstrating that proximity alone does not guarantee 
             harvestability and that borough-level planning must be grounded in measurement data 
             rather than geographic assumption.
 
