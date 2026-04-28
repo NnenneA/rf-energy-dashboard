@@ -644,44 +644,7 @@ elif page == " Deployment Recommendations":
             immediate next step for future research.
             """)
 
-        st.markdown("---")
-        st.markdown("### Signal Strength Explorer")
-        st.markdown("Explore signal statistics for specific areas of London.")
-
-        col1, col2 = st.columns(2)
-        with col1:
-            lat_input = st.number_input("Latitude", min_value=51.28, max_value=51.69,
-                value=51.5074, step=0.01)
-            lon_input = st.number_input("Longitude", min_value=-0.51, max_value=0.33,
-                value=-0.1278, step=0.01)
-            radius = st.slider("Search radius (km)", 0.5, 5.0, 1.0, 0.5)
-
-        with col2:
-            lat_deg = radius / 111
-            lon_deg = radius / (111 * np.cos(np.radians(lat_input)))
-            nearby = df[
-                (df['latitude'].between(lat_input - lat_deg, lat_input + lat_deg)) &
-                (df['longitude'].between(lon_input - lon_deg, lon_input + lon_deg))
-            ]
-            if len(nearby) > 0:
-                st.metric("Measurements in area", f"{len(nearby):,}")
-                st.metric("Harvestable locations", f"{nearby['harvestable'].sum():,}",
-                          f"{nearby['harvestable'].mean()*100:.2f}%")
-                rsrp_means = {
-                    'Three UK': nearby['rsrp_top1_3uk'].mean(),
-                    'EE': nearby['rsrp_top1_ee'].mean(),
-                    'O2': nearby['rsrp_top1_o2'].mean(),
-                    'Vodafone': nearby['rsrp_top1_vf'].mean()
-                }
-                best_op = max(rsrp_means, key=rsrp_means.get)
-                st.metric("Strongest operator nearby", best_op,
-                          f"{rsrp_means[best_op]:.2f} dBm")
-                if nearby['harvestable'].mean() > 0.005:
-                    st.success("✅ This area has above-average harvestability potential")
-                else:
-                    st.warning("⚠️ This area has below-average harvestability potential")
-            else:
-                st.warning("No measurements found in this area. Try increasing the search radius.")
+        
 
         st.markdown("---")
         st.markdown("### Research Summary")
@@ -690,7 +653,7 @@ elif page == " Deployment Recommendations":
 
         This research demonstrates that machine learning can identify confirmed RF 
         harvestable locations across London with perfect precision. XGBoost identified 
-        344 locations with zero false positives — every flagged location genuinely meets 
+        344 locations with zero false positives, every flagged location genuinely meets 
         the -40 dBm rectenna activation threshold.
 
         While recall is limited to 16.1%, partial identification of harvestable locations 
