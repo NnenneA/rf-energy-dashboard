@@ -195,7 +195,7 @@ if page == " Overview":
                          title='Harvestability Class Balance', text='Count')
             fig.update_traces(texttemplate='%{text:,}', textposition='outside')
             fig.update_layout(showlegend=False, height=350, plot_bgcolor='white')
-            st.plotly_chart(fig, use_container_width=True)
+            st.plotly_chart(fig, idth='stretch')
 
         st.markdown("---")
         st.markdown("### RSRP Descriptive Statistics by Operator")
@@ -214,7 +214,7 @@ if page == " Overview":
                     'Max (dBm)': round(df[col].max(), 2),
                     '% Below -40 dBm': round((df[col] < -40).mean() * 100, 2)
                 })
-        st.dataframe(pd.DataFrame(stats_data), use_container_width=True, hide_index=True)
+        st.dataframe(pd.DataFrame(stats_data), idth='stretch', hide_index=True)
 
 # ============================================================
 # PAGE 2: GEOGRAPHIC MAP
@@ -300,7 +300,7 @@ elif page == " Geographic Map":
                 'Note': '← Study threshold' if t == -40 else ''
             })
 
-        st.dataframe(pd.DataFrame(threshold_table), use_container_width=True, hide_index=True)
+        st.dataframe(pd.DataFrame(threshold_table), idth='stretch', hide_index=True)
 
         st.markdown("---")
         col1, col2, col3 = st.columns(3)
@@ -345,7 +345,7 @@ elif page == " Temporal Analysis":
         fig_hourly.update_layout(height=450, plot_bgcolor='white',
             xaxis=dict(tickmode='array', tickvals=sorted(df['hour_of_day'].unique()),
                        title='Hour of Day'), yaxis_title='Mean RSRP (dBm)')
-        st.plotly_chart(fig_hourly, use_container_width=True)
+        st.plotly_chart(fig_hourly, idth='stretch')
         st.info("⚠️ Hours 7 and 14 are absent from the dataset due to Ofcom's drive-test scheduling.")
 
         st.markdown("---")
@@ -359,7 +359,7 @@ elif page == " Temporal Analysis":
                 title='Measurement Count by Hour of Day',
                 color_discrete_sequence=['#2196F3'])
             fig_counts.update_layout(height=350, plot_bgcolor='white')
-            st.plotly_chart(fig_counts, use_container_width=True)
+            st.plotly_chart(fig_counts, idth='stretch')
 
         with col2:
             st.markdown("### Harvestability Rate by Hour")
@@ -371,7 +371,7 @@ elif page == " Temporal Analysis":
                 color_discrete_sequence=['#4CAF50'])
             fig_harvest_hour.update_layout(height=350, plot_bgcolor='white',
                 yaxis_title='Harvestability Rate (%)')
-            st.plotly_chart(fig_harvest_hour, use_container_width=True)
+            st.plotly_chart(fig_harvest_hour, idth='stretch')
 
         st.markdown("---")
         st.markdown("### RSRP Distribution by Operator")
@@ -392,7 +392,7 @@ elif page == " Temporal Analysis":
         fig_dist.update_layout(barmode='overlay', title='RSRP Distribution by Operator',
             xaxis_title='RSRP (dBm)', yaxis_title='Count',
             height=400, plot_bgcolor='white')
-        st.plotly_chart(fig_dist, use_container_width=True)
+        st.plotly_chart(fig_dist, idth='stretch')
 
 # ============================================================
 # PAGE 4: MODEL PERFORMANCE
@@ -425,7 +425,7 @@ elif page == " Model Performance":
             return [''] * len(row)
 
         st.dataframe(model_results.style.apply(highlight_best, axis=1),
-                     use_container_width=True, hide_index=True)
+                     idth='stretch', hide_index=True)
         st.caption("— indicates undefined metric (model predicted no positive cases). SVM Linear Kernel reflects extended tuning following supervisor feedback.")
         st.success("✅ XGBoost Tuned is the best performing model: F1 = 0.2769, Kappa = 0.2752, PR-AUC = 0.1739 (21× above random baseline)")
         st.markdown("---")
@@ -442,7 +442,7 @@ elif page == " Model Performance":
             fig_f1.update_traces(texttemplate='%{text:.4f}', textposition='outside')
             fig_f1.update_layout(height=400, plot_bgcolor='white',
                 showlegend=False, xaxis_tickangle=-30)
-            st.plotly_chart(fig_f1, use_container_width=True)
+            st.plotly_chart(fig_f1, idth='stretch')
 
         with col2:
             prauc_data = pd.DataFrame({
@@ -458,7 +458,7 @@ elif page == " Model Performance":
                 annotation_text="Random baseline")
             fig_prauc.update_layout(height=400, plot_bgcolor='white',
                 showlegend=False, xaxis_tickangle=-30)
-            st.plotly_chart(fig_prauc, use_container_width=True)
+            st.plotly_chart(fig_prauc, idth='stretch')
 
         st.markdown("---")
         col1, col2 = st.columns(2)
@@ -473,7 +473,7 @@ elif page == " Model Performance":
                 'FN': [2031, 1804, 1797, 1797, 2141, 2035, 0],
                 'TP': [110, 337, 344, 344, 0, 106, 2141]
             })
-            st.dataframe(cm_data, use_container_width=True, hide_index=True)
+            st.dataframe(cm_data, idth='stretch', hide_index=True)
 
         with col2:
             st.markdown("### True Positives Found")
@@ -489,7 +489,7 @@ elif page == " Model Performance":
                 annotation_text="Total harvestable = 2,141")
             fig_tp.update_traces(textposition='outside')
             fig_tp.update_layout(height=350, plot_bgcolor='white', showlegend=False)
-            st.plotly_chart(fig_tp, use_container_width=True)
+            st.plotly_chart(fig_tp, idth='stretch')
 
         st.markdown("---")
         st.markdown("### Random Split vs Time-Based Split")
@@ -537,7 +537,7 @@ elif page == " Deployment Recommendations":
                     title='Mean RSRP by Operator')
                 fig_op.add_hline(y=-40, line_dash="dash", line_color="red")
                 fig_op.update_layout(height=250, showlegend=False, plot_bgcolor='white')
-                st.plotly_chart(fig_op, use_container_width=True)
+                st.plotly_chart(fig_op, idth='stretch')
 
         with st.expander("🤖 2. Use XGBoost predictions to shortlist deployment locations"):
             col1, col2 = st.columns([2, 1])
@@ -582,7 +582,7 @@ elif page == " Deployment Recommendations":
                     color_discrete_sequence=['#E91E63'], markers=True)
                 fig_h.add_hline(y=-40, line_dash="dash", line_color="red")
                 fig_h.update_layout(height=250, plot_bgcolor='white')
-                st.plotly_chart(fig_h, use_container_width=True)
+                st.plotly_chart(fig_h, idth='stretch')
 
         with st.expander("🗺️ 4. Prioritise West London boroughs for initial deployment"):
             st.markdown("""
@@ -615,14 +615,14 @@ elif page == " Deployment Recommendations":
                 fig_borough.update_traces(texttemplate='%{text:.2f}%', textposition='outside')
                 fig_borough.update_layout(height=400, plot_bgcolor='white',
                     showlegend=False, xaxis_tickangle=-30)
-                st.plotly_chart(fig_borough, use_container_width=True)
+                st.plotly_chart(fig_borough, idth='stretch')
 
             with col2:
                 if os.path.exists("spatial plot.jpeg"):
                     st.image(
                         "spatial plot.jpeg",
                         caption="RF Harvestability Rate by London Borough (%)",
-                        use_container_width=True
+                        idth='stretch'
                     )
                 else:
                     st.info("Borough spatial map: add 'spatial plot.jpeg' to the repository.")
